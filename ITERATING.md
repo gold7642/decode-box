@@ -159,11 +159,12 @@ git config --global user.name  # 全局：hong.chen（公司身份未动）✓
 
 **已配好**：`.github/workflows/build.yml`（三平台矩阵 + rust-cache 缓存加速），随仓库首次提交（7600310）入库，push 即生效。
 
-**首次启用**：✅ 已完成（2026-09-02）
+**首次启用**：✅ 已完成并全链路验证（2026-09-02）
 
 - 仓库：**https://github.com/gold7642/decode-box**（私有）
 - remote 已配好（凭据内嵌在仓库级 remote URL，推送免输）
-- push 到 main 自动触发三平台构建；打 tag `v*` 发正式版
+- push 到 main：自动三平台构建 + **Artifacts 上传**（保留 90 天）
+- 打 tag `v*`：构建 + 自动创建 **Release 草稿**（三平台安装包挂为资产，永久保留）
 
 **日常迭代循环**：
 
@@ -173,13 +174,17 @@ cargo test --lib && npx vue-tsc --noEmit   # 本地门禁
 git add -A && git commit -m "描述"
 git push
 
-# 发正式版（Actions 自动出三平台包并挂到 GitHub Releases）
+# 发正式版：打 tag → Actions 自动建 Release 草稿 → 网页点 Publish
 git tag v0.2.0
 git push origin v0.2.0
+# 然后到 Releases 页面：确认资产齐全 → 点 "Publish release"
 ```
 
-**取包位置**：仓库 → Actions → 对应构建 → Artifacts 下载（或 Releases 页面）。
-**构建时长**：三平台约 10-20 分钟（rust-cache 生效后更快）。
+**取包位置**：
+- 日常包：Actions → 最新构建 → Artifacts（需登录，90 天过期）
+- 正式包：**Releases 页面**（发布后永久，分发给同事用这个）
+
+**构建时长**：三平台并行约 15-25 分钟（rust-cache 生效后更快）。
 
 **日常迭代循环**：
 
@@ -289,3 +294,11 @@ zip -rq decode-box-src.zip phone-decrypt-tool \
    三平台一次构建约 45 分钟（win 15-20 + mac×2 各 10-15，并行计费按各 job 累计），
    即一个月约 40-45 次构建，日常迭代够用；省额度可只 push 不 tag 时跑，或加
    `paths` 过滤只在 src 变更时触发。
+4. **创建 Release 需要 `contents: write` 权限**（2026-09-02 run#5 实测）：私有仓库
+   GITHUB_TOKEN 默认只读，无权限时会三平台全挂 `Resource not accessible by
+   integration`。workflow 已声明 `permissions: contents: write`。
+5. **tauri-action 无 tagName 时不产 Artifacts**（run#3 实测）：只构建不上传，包在
+   云机器上销毁。workflow 已加 `actions/upload-artifact@v4` 兜底。
+6. **Release 资产名中文丢失**（v0.1.0 实测）：上传后 `解码宝匣_0.1.0_x64-setup.exe`
+   变成 `_0.1.0_x64-setup.exe`（GitHub 资产名对非 ASCII 的处理）。不影响下载使用；
+   在意的话可在 Releases 页面手动改资产名。
