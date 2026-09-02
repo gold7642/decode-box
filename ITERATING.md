@@ -113,21 +113,28 @@ mac **无法**交叉编译 Windows 安装包（MSVC 链接器闭源）。双系�
 
 ## 四、Git 账号隔离（个人账号，不用公司 Git）
 
-**现状**：本仓库已配置**仓库级**个人身份（不切换全局 git 账号，公司项目零影响）：
+**现状**：本仓库已配置**仓库级**个人身份 + 个人 remote（不切换全局 git 账号，公司项目零影响）：
 
 ```bash
 # 已配置（仅 phone-decrypt-tool 仓库内生效）
 git config user.name  "callmedana"
 git config user.email "869377908@qq.com"
+# remote：https://gold7642:<TOKEN>@github.com/gold7642/decode-box.git
+#   （Token 已含 repo+workflow 权限，内嵌在仓库级 remote，推送免输）
 ```
-
-**认证方式：gh CLI（已安装并登录）**，push 走 gh 的 credential helper，无需 SSH key、无需密码。
 
 日常推送：
 
 ```bash
 cd /Users/callmedana/work/projects/phone-decrypt-tool
-git push          # 凭据由 gh 管理，无需任何输入
+git push          # 凭据内嵌 remote，无需任何输入
+```
+
+**Token 到期换新时**（90 天）：
+
+```bash
+# GitHub → Settings → Developer settings → 生成新 Token（repo + workflow 权限）
+git remote set-url origin https://gold7642:<新TOKEN>@github.com/gold7642/decode-box.git
 ```
 
 **验证隔离**：
@@ -136,6 +143,11 @@ git push          # 凭据由 gh 管理，无需任何输入
 git config user.name          # 本仓库：callmedana ✓
 git config --global user.name  # 全局：hong.chen（公司身份未动）✓
 ```
+
+**安全注意**：
+- Token 内嵌在 `.git/config` 的 remote URL 里——**别把 `.git` 目录拷给别人**（拷源码包给别人时用 zip 排除，已有打包命令）
+- Token 泄露/过期：GitHub → Settings → Tokens 吊销重建，然后 `remote set-url` 换上
+- 仓库是私有的，但含密钥凭据，**不要转公开**
 
 ---
 
@@ -147,10 +159,27 @@ git config --global user.name  # 全局：hong.chen（公司身份未动）✓
 
 **已配好**：`.github/workflows/build.yml`（三平台矩阵 + rust-cache 缓存加速），随仓库首次提交（7600310）入库，push 即生效。
 
-**首次启用**：
-1. GitHub 建私有仓库 `decode-box`
-2. 按上面第四节配好个人账号 remote
-3. `git push -u origin main`
+**首次启用**：✅ 已完成（2026-09-02）
+
+- 仓库：**https://github.com/gold7642/decode-box**（私有）
+- remote 已配好（凭据内嵌在仓库级 remote URL，推送免输）
+- push 到 main 自动触发三平台构建；打 tag `v*` 发正式版
+
+**日常迭代循环**：
+
+```bash
+# 改代码 → 测试 → 提交 → 推送
+cargo test --lib && npx vue-tsc --noEmit   # 本地门禁
+git add -A && git commit -m "描述"
+git push
+
+# 发正式版（Actions 自动出三平台包并挂到 GitHub Releases）
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+**取包位置**：仓库 → Actions → 对应构建 → Artifacts 下载（或 Releases 页面）。
+**构建时长**：三平台约 10-20 分钟（rust-cache 生效后更快）。
 
 **日常迭代循环**：
 
