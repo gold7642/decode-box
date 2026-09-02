@@ -7,6 +7,10 @@ on:
       - "v*"
   workflow_dispatch:
 
+# tag 触发时 tauri-action 要创建 Release，需要写权限（私有仓库默认 GITHUB_TOKEN 只读）
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
