@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
     tags:
       - "v*"
   workflow_dispatch:
@@ -13,11 +13,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-latest
+          - name: macos-aarch64
+            platform: macos-latest
             args: "--target aarch64-apple-darwin"
-          - platform: macos-latest
+          - name: macos-x86_64
+            platform: macos-latest
             args: "--target x86_64-apple-darwin"
-          - platform: windows-latest
+          - name: windows-x64
+            platform: windows-latest
             args: ""
     runs-on: ${{ matrix.platform }}
     steps:
@@ -46,5 +49,20 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          # Windows 只出 NSIS（与本地一致；Wix MSI 对中文产品名有编码坑）
+          # 仅 tag 触发时创建 Release（v__VERSION__ 自动替换为 tauri.conf.json 的版本号）
+          tagName: ${{ startsWith(github.ref, 'refs/tags/') && 'v__VERSION__' || '' }}
+          releaseName: '解码宝匣 v__VERSION__'
+          releaseBody: '下载对应平台安装包：macOS 用 .dmg，Windows 用 _x64-setup.exe'
+          releaseDraft: true
+          prerelease: false
+          # Windows 只出 NSIS（Wix MSI 对中文产品名有编码坑）
           args: ${{ matrix.platform == 'windows-latest' && '--bundles nsis' || matrix.args }}
+
+      - name: Upload bundles (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: decode-box-${{ matrix.name }}
+          path: |
+            src-tauri/target/release/bundle/**
+            src-tauri/target/*/release/bundle/**
+          if-no-files-found: error
