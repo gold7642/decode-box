@@ -275,3 +275,17 @@ zip -rq decode-box-src.zip phone-decrypt-tool \
 | Windows 下载 Rust 慢？ | rsproxy 镜像（RUSTUP_DIST_SERVER=https://rsproxy.cn）+ cargo 镜像（~/.cargo/config.toml） |
 | dmg 和 .app 区别？ | .app 是应用本体；.dmg 是分发镜像（拖入应用程序） |
 | 免安装版？ | release 目录的裸 exe（win）/ 直接用 .app（mac） |
+
+### CI 已踩平的坑（改动 workflow/打包配置前必读）
+
+1. **Windows CI 打包器用 NSIS，不要 MSI**（2026-09-02 run#1/#2 实测）：Wix 的
+   `light.exe` 对中文产品名「解码宝匣」编码崩溃（`failed to run WixTools314\light.exe`）。
+   workflow 已固定 `--bundles nsis`，与本地构建路径一致。
+   若未来必须出 MSI：改 tauri.conf.json 的 `bundle.windows.wix.language` 为 `zh-CN`
+   并把产品名改英文，或等产品方修 Wix。
+2. **推送含 workflow 文件的提交，Token 需要 `workflow` 权限**（仅 repo 权限会被拒：
+   `refusing to allow a PAT to create or update workflow`）。
+3. **GitHub Actions 免费额度**：私有仓库每月 2000 分钟（public 无限）。
+   三平台一次构建约 45 分钟（win 15-20 + mac×2 各 10-15，并行计费按各 job 累计），
+   即一个月约 40-45 次构建，日常迭代够用；省额度可只 push 不 tag 时跑，或加
+   `paths` 过滤只在 src 变更时触发。
