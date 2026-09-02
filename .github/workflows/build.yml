@@ -46,4 +46,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: ${{ matrix.args }}
+          # Windows 只出 NSIS（与本地一致；Wix MSI 对中文产品名有编码坑）
+          args: ${{ matrix.platform == 'windows-latest' && '--bundles nsis' || matrix.args }}
