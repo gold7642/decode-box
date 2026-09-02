@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.br.grpc.encodemapping";
+option java_outer_classname = "EncodeMappingProto";
+
+package encodemapping;
+
+service EncodeMapping {
+    rpc callBackName (EncodeRequest) returns (ResultBean) {}
+    rpc query(EncodeRequest) returns (ResultBean){}
+    rpc querySpecial(EncodeRequest) returns (ResultBean){}
+    rpc putValue(EncodeRequest) returns(ResultBean){}
+    rpc ping(PingRequest) returns (PingResponse){}
+}
+
+message PingRequest{
+    string param=1;
+}
+
+message PingResponse{
+    string response=1;
+}
+
+message EncodeRequest {
+    string param = 1;
+}
+
+message ResultBean {
+    string status = 1;
+    string code=2;
+    string message=3;
+    string data=4;
+    int64 processTime=5;
+}
